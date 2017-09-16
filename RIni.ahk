@@ -4,15 +4,19 @@
 ; # Original thread: https://autohotkey.com/board/topic/62917-ini-library-fast-in-memory-functions-no-regex/
 ; # https://github.com/Rseding91
 ; #############################################################################################################
+; #############################################################################################################
 ; # Modified by dein0s
+; # Source code: https://github.com/dein0s/AHK_Snippets/blob/master/RIni.ahk
+; #
 ; # Github: https://github.com/dein0s
 ; # Twitter: https://twitter.com/dein0s
 ; # Discord: dein0s#2248
-
+; #
 ; # Modified parts marked as following:
-; --- MODIFICATION START (dein0s) ---
-; --- MODIFICATION END (dein0s) ---;
+; # --- MODIFICATION START (dein0s) ---
+; # --- MODIFICATION END (dein0s) ---;
 ; #############################################################################################################
+
 
 #noenv	;Increases the speed of the library due to the large amount of dynamic variables.
 SetBatchLines -1	;Increases the overall speed of the script.

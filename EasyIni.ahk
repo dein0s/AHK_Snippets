@@ -1,8 +1,21 @@
 ; #############################################################################################################
 ; # Verdlin's INI library
 ; # Original thread: https://autohotkey.com/board/topic/91578-class-easyini-native-syntax-inisectionkey-val-formatting-retained/
-; # Original sourcecode: https://github.com/Aatoz/AutoHotKey/blob/master/Lib/class_EasyIni.ahk
+; # Original source code: https://github.com/Aatoz/AutoHotKey/blob/master/Lib/class_EasyIni.ahk
 ; #############################################################################################################
+; #############################################################################################################
+; # Modified by dein0s
+; # Source code: https://github.com/dein0s/AHK_Snippets/blob/master/EasyIni.ahk
+; #
+; # Github: https://github.com/dein0s
+; # Twitter: https://twitter.com/dein0s
+; # Discord: dein0s#2248
+; #
+; # Modified parts marked as following:
+; # --- MODIFICATION START (dein0s) ---
+; # --- MODIFICATION END (dein0s) ---;
+; #############################################################################################################
+
 
 class_EasyIni(sFile="", sLoadFromStr="")
 {
@@ -118,7 +131,9 @@ class EasyIni
 	CreateIniObj(parms*)
 	{
 		; Define prototype object for ini arrays:
-		static base := {__Set: "EasyIni_Set", _NewEnum: "EasyIni_NewEnum", Delete: "Delete", Remove: "EasyIni_Remove", Insert: "EasyIni_Insert", InsertBefore: "EasyIni_InsertBefore", AddSection: "EasyIni.AddSection", RenameSection: "EasyIni.RenameSection", DeleteSection: "EasyIni.DeleteSection", GetSections: "EasyIni.GetSections", FindSecs: "EasyIni.FindSecs", AddKey: "EasyIni.AddKey", RenameKey: "EasyIni.RenameKey", DeleteKey: "EasyIni.DeleteKey", GetKeys: "EasyIni.GetKeys", FindKeys: "EasyIni.FindKeys", GetVals: "EasyIni.GetVals", FindVals: "EasyIni.FindVals", HasVal: "EasyIni.HasVal", Copy: "EasyIni.Copy", Merge: "EasyIni.Merge", GetFileName: "EasyIni.GetFileName", GetOnlyIniFileName:"EasyIni.GetOnlyIniFileName", IsEmpty:"EasyIni.IsEmpty", Reload: "EasyIni.Reload", GetIsSaved: "EasyIni.GetIsSaved", Save: "EasyIni.Save", ToVar: "EasyIni.ToVar"}
+		; --- MODIFICATION START (dein0s) ---
+		static base := {__Set: "EasyIni_Set", _NewEnum: "EasyIni_NewEnum", Delete: "Delete", Remove: "EasyIni_Remove", Insert: "EasyIni_Insert", InsertBefore: "EasyIni_InsertBefore", AddSection: "EasyIni.AddSection", RenameSection: "EasyIni.RenameSection", DeleteSection: "EasyIni.DeleteSection", GetSections: "EasyIni.GetSections", FindSecs: "EasyIni.FindSecs", AddKey: "EasyIni.AddKey", RenameKey: "EasyIni.RenameKey", DeleteKey: "EasyIni.DeleteKey", GetKeys: "EasyIni.GetKeys", FindKeys: "EasyIni.FindKeys", GetVals: "EasyIni.GetVals", FindVals: "EasyIni.FindVals", HasVal: "EasyIni.HasVal", GetCommentContent: "EasyIni.GetCommentContent", GetTopComments: "EasyIni.GetTopComments", GetSectionComments: "EasyIni.GetSectionComments", GetKeyComments: "EasyIni.GetKeyComments", AddComment: "EasyIni.AddComment", AddTopComment: "EasyIni.AddTopComment", AddSectionComment: "EasyIni.AddSectionComment", AddKeyComment: "EasyIni.AddKeyComment", Copy: "EasyIni.Copy", Merge: "EasyIni.Merge", GetFileName: "EasyIni.GetFileName", GetOnlyIniFileName:"EasyIni.GetOnlyIniFileName", IsEmpty:"EasyIni.IsEmpty", Reload: "EasyIni.Reload", GetIsSaved: "EasyIni.GetIsSaved", Save: "EasyIni.Save", ToVar: "EasyIni.ToVar"}
+		; --- MODIFICATION END (dein0s) ---
 		; Create and return new object:
 		return Object("_keys", Object(), "base", base, parms*)
 	}
@@ -226,6 +241,15 @@ class EasyIni
 		return
 	}
 
+	; --- MODIFICATION START (dein0s) ---
+	; DeleteKey() provides some inconsistence (key is still saved into the file, but with empty value)
+	RemoveKey(sec, key)
+	{
+		this[sec].Remove(key)
+		return
+	}
+	; --- MODIFICATION END (dein0s) ---
+
 	GetKeys(sec, sDelim="`n", sSort="")
 	{
 		for key in this[sec]
@@ -302,6 +326,113 @@ class EasyIni
 				return true
 		return false
 	}
+
+	; --- MODIFICATION START (dein0s) ---
+	; Working with comments
+	GetCommentContent(sec = "", key = "", topComment = false)
+	{
+		if (topComment) {
+			commentsObj := this.EasyIni_ReservedFor_TopComments
+		}
+		else {
+			commentsObj := StrSplit(this[sec].EasyIni_ReservedFor_Comments[key], "`n")
+		}
+		for commentIndex, commentContent in commentsObj {
+			if (!EasyIni_StringEmpty(commentContent)) {
+				sComments .= commentContent "`n"
+			}
+		}
+		return sComments
+	}
+
+	GetTopComments()
+	{
+		return this.GetCommentContent( , , true)
+	}
+
+	GetSectionComments(sec)
+	{
+		return this.GetCommentContent(sec, "SectionComment")
+	}
+
+	GetKeyComments(sec, key)
+	{
+		return this.GetCommentContent(sec, key)
+	}
+
+	AddComment(sec = "", key = "", comment = "", topComment = false)
+	{
+		commentStr := ""
+		if (topComment) {
+			for commentIndex, commentContent in this.EasyIni_ReservedFor_TopComments {
+				if (!EasyIni_StringEmpty(commentContent)) {
+					commentStr .= commentContent "`n"
+				}
+			}
+		}
+		else if (key == "SectionComment") {
+			if (!this.HasKey(sec)) {
+				rsError := "Error! Could not add comment to Section [" Section "] because it doesn't exist."
+				return false
+			}
+			else {
+				for commentIndex, commentContent in StrSplit(this[sec].EasyIni_ReservedFor_Comments[key], "`n") {
+					if (!EasyIni_StringEmpty(commentContent)) {
+						commentStr .= commentContent "`n"
+					}
+				}
+			}
+		}
+		else {
+			if (!this[sec].HasKey(key)) {
+				rsError := "Error! Could not add comment to key " Key " because this key doesn't exist in Section [" Section "]."
+				return false
+			}
+			else {
+				for commentIndex, commentContent in StrSplit(this[sec].EasyIni_ReservedFor_Comments[key], "`n") {
+					if (!EasyIni_StringEmpty(commentContent)) {
+						commentStr .=  commentContent "`n"
+					}
+				}
+			}
+		}
+		for commentIndex, commentContent in StrSplit(comment, "`n") {
+			if (!EasyIni_StringEmpty(commentContent)) {
+				if (InStr(commentContent, ";") != 1) {
+					commentContent := "; " commentContent
+				}
+				if (!InStr(commentStr, commentContent)) {
+					if (topComment) {
+						this.EasyIni_ReservedFor_TopComments.Insert(commentContent)
+					}
+					else {
+						this[sec].EasyIni_ReservedFor_Comments.Insert(key, commentStr commentContent "`n")
+					}
+				}
+			}
+		}
+		return true
+	}
+
+	AddTopComment(comment)
+	{
+		return this.AddComment( , , comment, true)
+	}
+
+	AddSectionComment(sec, comment)
+	{
+		return this.AddComment(sec, "SectionComment", comment)
+	}
+
+	AddKeyComment(sec, key, comment)
+	{
+		return this.AddComment(sec, key, comment)
+	}
+	; --- MODIFICATION END (dein0s) ---
+
+	; --- MODIFICATION START (dein0s) ---
+	; TODO: implement Update()
+	; --- MODIFICATION END (dein0s) ---
 
 	; SourceIni: May be EasyIni object or simply a path to an ini file.
 	; bCopyFileName = true: Allow copying of data without copying the file name.
@@ -472,6 +603,12 @@ class EasyIni
 		{
 			FileAppend, % (bIsFirstLine ? "[" : "`n[") section "]", %sFile%
 			bIsFirstLine := false
+			; --- MODIFICATION START (dein0s) ---
+			; Add the comment(s) for this section
+			sComments := this[section].EasyIni_ReservedFor_Comments["SectionComment"]
+			Loop, Parse, sComments, `n
+				FileAppend, % "`n" (A_LoopField == Chr(14) ? "" : A_LoopField), %sFile%
+			; --- MODIFICATION END (dein0s) ---
 
 			bEmptySection := true
 			for key, val in aKeysToVals
@@ -606,3 +743,13 @@ EasyIni_InsertBefore(obj, key, parms*)
 
 	return r
 }
+
+; --- MODIFICATION START (dein0s) ---
+EasyIni_StringEmpty(string)
+{
+	if (string == Chr(14) or string == "`n" or string == "`r" or string == "`r`n" or string == "`n`r" or string == "") {
+		return true
+	}
+	return false
+}
+; --- MODIFICATION END (dein0s) ---
