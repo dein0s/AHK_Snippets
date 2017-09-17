@@ -6,6 +6,7 @@
 ; #############################################################################################################
 ; # Modified by dein0s
 ; # Source code: https://github.com/dein0s/AHK_Snippets/blob/master/EasyIni.ahk
+; # List of all functions and class methods at the end of this file
 ; #
 ; # Github: https://github.com/dein0s
 ; # Twitter: https://twitter.com/dein0s
@@ -132,7 +133,7 @@ class EasyIni
 	{
 		; Define prototype object for ini arrays:
 		; --- MODIFICATION START (dein0s) ---
-		static base := {__Set: "EasyIni_Set", _NewEnum: "EasyIni_NewEnum", Delete: "Delete", Remove: "EasyIni_Remove", Insert: "EasyIni_Insert", InsertBefore: "EasyIni_InsertBefore", AddSection: "EasyIni.AddSection", RenameSection: "EasyIni.RenameSection", DeleteSection: "EasyIni.DeleteSection", GetSections: "EasyIni.GetSections", FindSecs: "EasyIni.FindSecs", AddKey: "EasyIni.AddKey", RenameKey: "EasyIni.RenameKey", DeleteKey: "EasyIni.DeleteKey", GetKeys: "EasyIni.GetKeys", FindKeys: "EasyIni.FindKeys", GetVals: "EasyIni.GetVals", FindVals: "EasyIni.FindVals", HasVal: "EasyIni.HasVal", GetCommentContent: "EasyIni.GetCommentContent", GetTopComments: "EasyIni.GetTopComments", GetSectionComments: "EasyIni.GetSectionComments", GetKeyComments: "EasyIni.GetKeyComments", AddComment: "EasyIni.AddComment", AddTopComment: "EasyIni.AddTopComment", AddSectionComment: "EasyIni.AddSectionComment", AddKeyComment: "EasyIni.AddKeyComment", Copy: "EasyIni.Copy", Merge: "EasyIni.Merge", GetFileName: "EasyIni.GetFileName", GetOnlyIniFileName:"EasyIni.GetOnlyIniFileName", IsEmpty:"EasyIni.IsEmpty", Reload: "EasyIni.Reload", GetIsSaved: "EasyIni.GetIsSaved", Save: "EasyIni.Save", ToVar: "EasyIni.ToVar"}
+		static base := {__Set: "EasyIni_Set", _NewEnum: "EasyIni_NewEnum", Delete: "Delete", Remove: "EasyIni_Remove", Insert: "EasyIni_Insert", InsertBefore: "EasyIni_InsertBefore", AddSection: "EasyIni.AddSection", RenameSection: "EasyIni.RenameSection", DeleteSection: "EasyIni.DeleteSection", GetSections: "EasyIni.GetSections", FindSecs: "EasyIni.FindSecs", AddKey: "EasyIni.AddKey", RenameKey: "EasyIni.RenameKey", DeleteKey: "EasyIni.DeleteKey", GetKeys: "EasyIni.GetKeys", FindKeys: "EasyIni.FindKeys", GetVals: "EasyIni.GetVals", FindVals: "EasyIni.FindVals", HasVal: "EasyIni.HasVal", GetCommentContent: "EasyIni.GetCommentContent", GetTopComments: "EasyIni.GetTopComments", GetSectionComments: "EasyIni.GetSectionComments", GetKeyComments: "EasyIni.GetKeyComments", AddComment: "EasyIni.AddComment", AddTopComment: "EasyIni.AddTopComment", AddSectionComment: "EasyIni.AddSectionComment", AddKeyComment: "EasyIni.AddKeyComment", Compare: "EasyIni.Compare", Copy: "EasyIni.Copy", Merge: "EasyIni.Merge", GetFileName: "EasyIni.GetFileName", GetOnlyIniFileName:"EasyIni.GetOnlyIniFileName", IsEmpty:"EasyIni.IsEmpty", Reload: "EasyIni.Reload", GetIsSaved: "EasyIni.GetIsSaved", Save: "EasyIni.Save", ToVar: "EasyIni.ToVar"}
 		; --- MODIFICATION END (dein0s) ---
 		; Create and return new object:
 		return Object("_keys", Object(), "base", base, parms*)
@@ -329,7 +330,7 @@ class EasyIni
 
 	; --- MODIFICATION START (dein0s) ---
 	; Working with comments
-	GetCommentContent(sec = "", key = "", topComment = false)
+	GetCommentContent(sec="", key="", topComment=false)
 	{
 		if (topComment) {
 			commentsObj := this.EasyIni_ReservedFor_TopComments
@@ -360,7 +361,7 @@ class EasyIni
 		return this.GetCommentContent(sec, key)
 	}
 
-	AddComment(sec = "", key = "", comment = "", topComment = false)
+	AddComment(sec="", key="", comment="", topComment=false, ByRef rsError="")
 	{
 		commentStr := ""
 		if (topComment) {
@@ -414,24 +415,74 @@ class EasyIni
 		return true
 	}
 
-	AddTopComment(comment)
+	AddTopComment(comment, ByRef rsError="")
 	{
-		return this.AddComment( , , comment, true)
+		return this.AddComment( , , comment, true, ByRef rsError)
 	}
 
-	AddSectionComment(sec, comment)
+	AddSectionComment(sec, comment, ByRef rsError="")
 	{
-		return this.AddComment(sec, "SectionComment", comment)
+		return this.AddComment(sec, "SectionComment", comment, , ByRef rsError)
 	}
 
-	AddKeyComment(sec, key, comment)
+	AddKeyComment(sec, key, comment, ByRef rsError="")
 	{
-		return this.AddComment(sec, key, comment)
+		return this.AddComment(sec, key, comment, , ByRef rsError)
 	}
 	; --- MODIFICATION END (dein0s) ---
 
 	; --- MODIFICATION START (dein0s) ---
 	; TODO: implement Update()
+	Update(SourceIni, sections=true, keys=true, values=false, comments=true)
+	{
+		return
+	}
+	; TODO: implement Compare()
+	Compare(SourceIni, sections=true, keys=true, comments=false)
+	{
+		if (!IsObject(SourceIni)) {
+			SourceIni := class_EasyIni(SourceIni)
+		}
+		if (sections) {
+			if (this.GetSections("|", "C") != SourceIni.GetSections("|", "C")) {
+				return false
+			}
+		}
+		if (keys) {
+			for sectionIndex, sectionName in StrSplit(this.GetSections("|", "C"), "|") {
+				if (this.GetKeys(sectionName, "|", "C") != SourceIni.GetKeys(sectionName, "|", "C")) {
+					return false
+				}
+			}
+		}
+		if (comments) {
+			for commentIndex, commentContent in this.EasyIni_ReservedFor_TopComments {
+				sTopComments .= (A_Index == 1) ? commentContent : "|" commentContent
+				Sort, sTopComments, "|" "C"
+			}
+			for commentIndex, commentContent in SourceIni.EasyIni_ReservedFor_TopComments {
+				sTopCommentsSource .= (A_Index == 1) ? commentContent : "|" commentContent
+				Sort, sTopCommentsSource, "|" "C"
+			}
+			if (sTopComments != sTopCommentsSource) {
+				return false
+			}
+			for sectionIndex, sectionName in StrSplit(this.GetSections("|", "C"), "|") {
+				for commentKey, commentContent in this[sectionName].EasyIni_ReservedFor_Comments {
+					sAllSectionComments .= (A_Index == 1) ? commentContent : "|" commentContent
+					Sort, sAllSectionComments, "|" "C"
+				}
+				for commentKey, commentContent in SourceIni[sectionName].EasyIni_ReservedFor_Comments {
+					sAllSectionCommentsSource .= (A_Index == 1) ? commentContent : "|" commentContent
+					Sort, sAllSectionCommentsSource, "|" "C"
+				}
+				if (sAllSectionComments != sAllSectionCommentsSource) {
+					return false
+				}
+			}
+		}
+		return true
+	}
 	; --- MODIFICATION END (dein0s) ---
 
 	; SourceIni: May be EasyIni object or simply a path to an ini file.
@@ -745,11 +796,60 @@ EasyIni_InsertBefore(obj, key, parms*)
 }
 
 ; --- MODIFICATION START (dein0s) ---
-EasyIni_StringEmpty(string)
+IsStringEmpty(string)
 {
 	if (string == Chr(14) or string == "`n" or string == "`r" or string == "`r`n" or string == "`n`r" or string == "") {
 		return true
 	}
 	return false
 }
+
+/*
+	List of functions:
+		class_EasyIni(sFile="", sLoadFromStr="")
+		EasyIni_CreateBaseObj(parms*)
+		EasyIni_Set(obj, parms*)
+		EasyIni_NewEnum(obj)
+		EasyIni_EnumNext(e, ByRef k, ByRef v="")
+		EasyIni_Remove(obj, parms*)
+		EasyIni_Insert(obj, parms*)
+		EasyIni_InsertBefore(obj, key, parms*)
+		IsStringEmpty(string)
+
+	List of EasyIni class methods:
+		__New(sFile="", sLoadFromStr="")
+		CreateIniObj(parms*)
+		AddSection(sec, key="", val="", ByRef rsError="")
+		RenameSection(sOldSec, sNewSec, ByRef rsError="")
+		DeleteSection(sec)
+		GetSections(sDelim="`n", sSort="")
+		FindSecs(sExp, iMaxSecs="")
+		AddKey(sec, key, val="", ByRef rsError="")
+		RenameKey(sec, OldKey, NewKey, ByRef rsError="")
+		DeleteKey(sec, key)
+		RemoveKey(sec, key)
+		GetKeys(sec, sDelim="`n", sSort="")
+		FindKeys(sec, sExp, iMaxKeys="")
+		FindExactKeys(key, iMaxKeys="")
+		GetVals(sec, sDelim="`n", sSort="")
+		FindVals(sec, sExp, iMaxVals="")
+		HasVal(sec, FindVal)
+		GetCommentContent(sec="", key="", topComment=false)
+		GetTopComments()
+		GetSectionComments(sec)
+		GetKeyComments(sec, key)
+		AddComment(sec="", key="", comment="", topComment=false, ByRef rsError="")
+		AddTopComment(comment, ByRef rsError="")
+		AddSectionComment(sec, comment, ByRef rsError="")
+		AddKeyComment(sec, key, comment, ByRef rsError="")
+		Compare(SourceIni, sections=true, keys=true, comments=false)
+		Copy(SourceIni, bCopyFileName = true)
+		Merge(vOtherIni, bRemoveNonMatching = false, bOverwriteMatching = false, vExceptionsIni = "")
+		GetFileName()
+		GetOnlyIniFileName()
+		IsEmpty()
+		Reload()
+		Save(sSaveAs="", bWarnIfExist=false)
+		ToVar()
+*/
 ; --- MODIFICATION END (dein0s) ---
