@@ -133,7 +133,7 @@ class EasyIni
 	{
 		; Define prototype object for ini arrays:
 		; --- MODIFICATION START (dein0s) ---
-		static base := {__Set: "EasyIni_Set", _NewEnum: "EasyIni_NewEnum", Delete: "Delete", Remove: "EasyIni_Remove", Insert: "EasyIni_Insert", InsertBefore: "EasyIni_InsertBefore", AddSection: "EasyIni.AddSection", RenameSection: "EasyIni.RenameSection", DeleteSection: "EasyIni.DeleteSection", GetSections: "EasyIni.GetSections", FindSecs: "EasyIni.FindSecs", AddKey: "EasyIni.AddKey", RenameKey: "EasyIni.RenameKey", DeleteKey: "EasyIni.DeleteKey", GetKeys: "EasyIni.GetKeys", FindKeys: "EasyIni.FindKeys", GetVals: "EasyIni.GetVals", FindVals: "EasyIni.FindVals", HasVal: "EasyIni.HasVal", GetCommentContent: "EasyIni.GetCommentContent", GetTopComments: "EasyIni.GetTopComments", GetSectionComments: "EasyIni.GetSectionComments", GetKeyComments: "EasyIni.GetKeyComments", AddComment: "EasyIni.AddComment", AddTopComment: "EasyIni.AddTopComment", AddSectionComment: "EasyIni.AddSectionComment", AddKeyComment: "EasyIni.AddKeyComment", Compare: "EasyIni.Compare", Copy: "EasyIni.Copy", Merge: "EasyIni.Merge", GetFileName: "EasyIni.GetFileName", GetOnlyIniFileName:"EasyIni.GetOnlyIniFileName", IsEmpty:"EasyIni.IsEmpty", Reload: "EasyIni.Reload", GetIsSaved: "EasyIni.GetIsSaved", Save: "EasyIni.Save", ToVar: "EasyIni.ToVar"}
+		static base := {__Set: "EasyIni_Set", _NewEnum: "EasyIni_NewEnum", Delete: "Delete", Remove: "EasyIni_Remove", Insert: "EasyIni_Insert", InsertBefore: "EasyIni_InsertBefore", AddSection: "EasyIni.AddSection", RenameSection: "EasyIni.RenameSection", DeleteSection: "EasyIni.DeleteSection", GetSections: "EasyIni.GetSections", FindSecs: "EasyIni.FindSecs", AddKey: "EasyIni.AddKey", RenameKey: "EasyIni.RenameKey", DeleteKey: "EasyIni.DeleteKey", GetKeys: "EasyIni.GetKeys", FindKeys: "EasyIni.FindKeys", GetVals: "EasyIni.GetVals", FindVals: "EasyIni.FindVals", HasVal: "EasyIni.HasVal", SetKeyVal: "EasyIni.SetKeyVal", GetCommentContent: "EasyIni.GetCommentContent", GetTopComments: "EasyIni.GetTopComments", GetSectionComments: "EasyIni.GetSectionComments", GetKeyComments: "EasyIni.GetKeyComments", AddComment: "EasyIni.AddComment", AddTopComment: "EasyIni.AddTopComment", AddSectionComment: "EasyIni.AddSectionComment", AddKeyComment: "EasyIni.AddKeyComment", DeleteComment: "EasyIni.DeleteComment", Update: "EasyIni.Update", Compare: "EasyIni.Compare", Copy: "EasyIni.Copy", Merge: "EasyIni.Merge", GetFileName: "EasyIni.GetFileName", GetOnlyIniFileName:"EasyIni.GetOnlyIniFileName", IsEmpty:"EasyIni.IsEmpty", Reload: "EasyIni.Reload", GetIsSaved: "EasyIni.GetIsSaved", Save: "EasyIni.Save", ToVar: "EasyIni.ToVar"}
 		; --- MODIFICATION END (dein0s) ---
 		; Create and return new object:
 		return Object("_keys", Object(), "base", base, parms*)
@@ -144,6 +144,7 @@ class EasyIni
 		if (this.HasKey(sec))
 		{
 			rsError := "Error! Cannot add new section [" sec "], because it already exists."
+			MsgBox, %rsError%
 			return false
 		}
 
@@ -159,6 +160,7 @@ class EasyIni
 		if (!this.HasKey(sOldSec))
 		{
 			rsError := "Error! Could not rename section [" sOldSec "], because it does not exist."
+			MsgBox, %rsError%
 			return false
 		}
 		if (sOldSec = sNewSec) ; EasyIni is case-insensitve.
@@ -209,12 +211,14 @@ class EasyIni
 			if (this[sec].HasKey(key))
 			{
 				rsError := "Error! Could not add key, " key " because there is a key in the same section:`nSection: " sec "`nKey: " key
+				MsgBox, %rsError%
 				return false
 			}
 		}
 		else
 		{
 			rsError := "Error! Could not add key, " key " because Section, " sec " does not exist."
+			MsgBox, %rsError%
 			return false
 		}
 		this[sec, key] := val
@@ -226,6 +230,7 @@ class EasyIni
 		if (!this[sec].HasKey(OldKey))
 		{
 			rsError := "Error! The specified key " OldKey " could not be modified because it does not exist."
+			MsgBox, %rsError%
 			return false
 		}
 
@@ -243,7 +248,7 @@ class EasyIni
 	}
 
 	; --- MODIFICATION START (dein0s) ---
-	; DeleteKey() provides some inconsistence (key is still saved into the file, but with empty value)
+	; DeleteKey() provides some inconsistency (key is still saved into the file, but with empty value)
 	RemoveKey(sec, key)
 	{
 		this[sec].Remove(key)
@@ -329,7 +334,22 @@ class EasyIni
 	}
 
 	; --- MODIFICATION START (dein0s) ---
-	; Working with comments
+	SetKeyVal(sec, key, val, ByRef rsError="")
+	{
+		if (!this.HasKey(sec)) {
+			rsError := "Error! Could not set value '" val "' for key '" key "' because Section [" sec "] does not exist."
+			MsgBox, %rsError%
+			return false
+		}
+		if (!this[sec].HasKey(key)) {
+			rsError := "Error! Could not set value '" val "' for key '" key "' because key does not exist in Section [" sec "]."
+			MsgBox, %rsError%
+			return false
+		}
+		this[sec, key] := val
+		return true
+	}
+
 	GetCommentContent(sec="", key="", topComment=false)
 	{
 		if (topComment) {
@@ -339,7 +359,7 @@ class EasyIni
 			commentsObj := StrSplit(this[sec].EasyIni_ReservedFor_Comments[key], "`n")
 		}
 		for commentIndex, commentContent in commentsObj {
-			if (!EasyIni_StringEmpty(commentContent)) {
+			if (!IsStringEmpty(commentContent)) {
 				sComments .= commentContent "`n"
 			}
 		}
@@ -363,51 +383,38 @@ class EasyIni
 
 	AddComment(sec="", key="", comment="", topComment=false, ByRef rsError="")
 	{
-		commentStr := ""
-		if (topComment) {
-			for commentIndex, commentContent in this.EasyIni_ReservedFor_TopComments {
-				if (!EasyIni_StringEmpty(commentContent)) {
-					commentStr .= commentContent "`n"
-				}
-			}
-		}
-		else if (key == "SectionComment") {
-			if (!this.HasKey(sec)) {
-				rsError := "Error! Could not add comment to Section [" Section "] because it doesn't exist."
-				return false
-			}
-			else {
-				for commentIndex, commentContent in StrSplit(this[sec].EasyIni_ReservedFor_Comments[key], "`n") {
-					if (!EasyIni_StringEmpty(commentContent)) {
-						commentStr .= commentContent "`n"
-					}
-				}
-			}
-		}
-		else {
-			if (!this[sec].HasKey(key)) {
-				rsError := "Error! Could not add comment to key " Key " because this key doesn't exist in Section [" Section "]."
-				return false
-			}
-			else {
-				for commentIndex, commentContent in StrSplit(this[sec].EasyIni_ReservedFor_Comments[key], "`n") {
-					if (!EasyIni_StringEmpty(commentContent)) {
-						commentStr .=  commentContent "`n"
-					}
-				}
-			}
-		}
 		for commentIndex, commentContent in StrSplit(comment, "`n") {
-			if (!EasyIni_StringEmpty(commentContent)) {
+			if (!IsStringEmpty(commentContent)) {
 				if (InStr(commentContent, ";") != 1) {
 					commentContent := "; " commentContent
 				}
-				if (!InStr(commentStr, commentContent)) {
-					if (topComment) {
-						this.EasyIni_ReservedFor_TopComments.Insert(commentContent)
+				if (topComment) {
+					this.EasyIni_ReservedFor_TopComments.Insert(commentContent)
+				}
+				else {
+					if (!this.HasKey(sec)) {
+						if (key == "SectionComment") {
+							rsError := "Error! Could not add comment to Section [" sec "] because it does not exist."
+						}
+						else {
+							rsError := "Error! Could not add comment to key '" key "' because Section [" sec "] does not exist."
+						}
+						MsgBox, %rsError%
+						return false
 					}
 					else {
-						this[sec].EasyIni_ReservedFor_Comments.Insert(key, commentStr commentContent "`n")
+						if (key != "SectionComment" and !this[sec].HasKey(key)) {
+							rsError := "Error! Could not add comment to key '" key "' because this key does not exist in Section [" sec "]."
+							MsgBox, %rsError%
+							return false
+						}
+						commentCurrent := this[sec].EasyIni_ReservedFor_Comments[key]
+						if (IsStringEmpty(commentCurrent)) {
+							this[sec].EasyIni_ReservedFor_Comments.Insert(key, commentContent)
+						}
+						else {
+							this[sec].EasyIni_ReservedFor_Comments.Insert(key, commentCurrent "`n" commentContent)
+						}
 					}
 				}
 			}
@@ -417,28 +424,174 @@ class EasyIni
 
 	AddTopComment(comment, ByRef rsError="")
 	{
-		return this.AddComment( , , comment, true, ByRef rsError)
+		return this.AddComment( , , comment, true, rsError)
 	}
 
 	AddSectionComment(sec, comment, ByRef rsError="")
 	{
-		return this.AddComment(sec, "SectionComment", comment, , ByRef rsError)
+		return this.AddComment(sec, "SectionComment", comment, , rsError)
 	}
 
 	AddKeyComment(sec, key, comment, ByRef rsError="")
 	{
-		return this.AddComment(sec, key, comment, , ByRef rsError)
+		return this.AddComment(sec, key, comment, , rsError)
 	}
-	; --- MODIFICATION END (dein0s) ---
 
-	; --- MODIFICATION START (dein0s) ---
-	; TODO: implement Update()
-	Update(SourceIni, sections=true, keys=true, values=false, comments=true)
+	DeleteComment(sec="", key="", comment="", topComment=false, ByRef rsError="")
 	{
+		for commentIndex, commentContent in StrSplit(comment, "`n") {
+			if (!IsStringEmpty(commentContent)) {
+				if (topComment) {
+					for commentIndexTop, commentContentTop in this.EasyIni_ReservedFor_TopComments {
+						if (commentContentTop ~= commentContent) {
+							this.EasyIni_ReservedFor_TopComments.Delete(commentIndexTop)
+						}
+					}
+				}
+				else {
+					if (!this.HasKey(sec)) {
+						if (key == "SectionComment") {
+							rsError := "Error! Could not delete comment from Section [" sec "] because it does not exist."
+						}
+						else {
+							rsError := "Error! Could not remove comment from key '" key "' because Section [" sec "] does not exist."
+						}
+						MsgBox, %rsError%
+						return false
+					}
+					else {
+						if (key != "SectionComment" and !this[sec].HasKey(key)) {
+							rsError := "Error! Could not delete comment from key '" key "' because this key does not exist in Section [" sec "]."
+							MsgBox, %rsError%
+							return false
+						}
+						for commentIndexCurrent, commentContentCurrent in StrSplit(this[sec].EasyIni_ReservedFor_Comments[key], "`n") {
+							if (commentContentCurrent ~= commentContent) {
+								continue
+							}
+							else {
+								commentCurrentStr .= commentContentCurrent "`n"
+							}
+						}
+						if (!IsStringEmpty(commentCurrentStr)) {
+							this[sec].EasyIni_ReservedFor_Comments.Insert(key, commentCurrentStr)
+						}
+						else {
+							this[sec].EasyIni_ReservedFor_Comments.Delete(key)
+						}
+					}
+				}
+			}
+		}
+		return true
+	}
+
+	DeleteTopComment(comment, ByRef rsError="")
+	{
+		return this.DeleteComment( , , comment, true, rsError)
+	}
+
+	DeleteSectionComment(sec, comment, ByRef rsError="")
+	{
+		return this.DeleteComment(sec, "SectionComment", comment, , rsError)
+	}
+
+	DeleteKeyComment(sec, key, comment, ByRef rsError="")
+	{
+		return this.DeleteComment(sec, key, comment, , rsError)
+	}
+
+	Update(SourceIni, sections=true, keys=true, values=false, comments=true)
+	; TODO: add docstring
+	{
+		if (!IsObject(SourceIni)) {
+			SourceIni := class_EasyIni(SourceIni)
+		}
+		; Add new items from SourceIni object
+		if (comments) {
+			for commentIndex, commentContent in StrSplit(SourceIni.GetTopComments(), "`n") {
+				; Add new top comment
+				if (!InStr(this.GetTopComments(), commentContent)) {
+					this.AddTopComment(commentContent)
+				}
+			}
+		}
+		for sectionName, sectionKeys in SourceIni {
+			; Add new section
+			if (sections and !this.HasKey(sectionName)) {
+				this.AddSection(sectionName)
+			}
+			; Add new section comment
+			if (comments and this.HasKey(sectionName)) {
+				for commentIndex, commentContent in StrSplit(SourceIni.GetSectionComments(sectionName), "`n") {
+					if (!InStr(this.GetSectionComments(sectionName), commentContent)) {
+						this.AddSectionComment(sectionName, commentContent)
+					}
+				}
+			}
+			for keyName, keyVal in sectionKeys {
+				; Add new key
+				if (keys and !this[sectionName].HasKey(keyName)) {
+					this.AddKey(sectionName, keyName, keyVal)
+				}
+				if (this[sectionName].HasKey(keyName)) {
+					; Set new key value
+					if (values) {
+						this.SetKeyVal(sectionName, keyName, keyVal)
+					}
+					; Add new key comment
+					if (comments) {
+						for commentIndex, commentContent in StrSplit(SourceIni.GetKeyComments(sectionName, keyName), "`n") {
+							if (!InStr(this.GetKeyComments(sectionName, keyName), commentContent)) {
+								this.AddKeyComment(sectionName, keyName, commentContent)
+							}
+						}
+					}
+				}
+			}
+		}
+		; Remove old items from current EasyIni object
+		if (comments) {
+			for commentIndex, commentContent in StrSplit(this.GetTopComments(), "`n") {
+				; Remove old top comment
+				if (!InStr(SourceIni.GetTopComments(), commentContent)) {
+					this.DeleteTopComment(commentContent)
+				}
+			}
+		}
+		for sectionName, sectionKeys in this {
+			; Remove old section
+			if (sections and !SourceIni.HasKey(sectionName)) {
+				this.DeleteSection(sectionName)
+			}
+			; Remove old section comment
+			if (comments and SourceIni.HasKey(sectionName)) {
+				for commentIndex, commentContent in StrSplit(this.GetSectionComments(sectionName), "`n") {
+					if (!InStr(SourceIni.GetSectionComments(sectionName), commentContent)) {
+						this.DeleteSection(sectionName, commentContent)
+					}
+				}
+			}
+			for keyName, keyVal in sectionKeys {
+				; Remove old key
+				if (keys and !SourceIni[sectionName].HasKey(keyName)) {
+					this.RemoveKey(sectionName, keyName)
+				}
+				; Remove old key comment
+				if (comments and SourceIni[sectionName].HasKey(keyName)){
+					for commentIndex, commentContent in StrSplit(this.GetKeyComments(sectionName, keyName)) {
+						if (!InStr(SourceIni.GetKeyComments(sectionName, keyName), commentContent)) {
+							this.DeleteKeyComment(sectionName, keyName, commentContent)
+						}
+					}
+				}
+			}
+		}
 		return
 	}
-	; TODO: implement Compare()
-	Compare(SourceIni, sections=true, keys=true, comments=false)
+
+	Compare(SourceIni, sections=true, keys=true, values=false, comments=false)
+	; TODO: add docstring
 	{
 		if (!IsObject(SourceIni)) {
 			SourceIni := class_EasyIni(SourceIni)
@@ -834,6 +987,7 @@ IsStringEmpty(string)
 		GetVals(sec, sDelim="`n", sSort="")
 		FindVals(sec, sExp, iMaxVals="")
 		HasVal(sec, FindVal)
+		SetKeyVal(sec, key, val, ByRef rsError="")
 		GetCommentContent(sec="", key="", topComment=false)
 		GetTopComments()
 		GetSectionComments(sec)
@@ -842,6 +996,11 @@ IsStringEmpty(string)
 		AddTopComment(comment, ByRef rsError="")
 		AddSectionComment(sec, comment, ByRef rsError="")
 		AddKeyComment(sec, key, comment, ByRef rsError="")
+		DeleteComment(sec="", key="", comment="", topComment=false, ByRef rsError="")
+		DeleteTopComment(comment, ByRef rsError="")
+		DeleteSectionComment(sec, comment, ByRef rsError="")
+		DeleteKeyComment(sec, key, comment, ByRef rsError="")
+		Update(SourceIni, sections=true, keys=true, values=false, comments=true)
 		Compare(SourceIni, sections=true, keys=true, comments=false)
 		Copy(SourceIni, bCopyFileName = true)
 		Merge(vOtherIni, bRemoveNonMatching = false, bOverwriteMatching = false, vExceptionsIni = "")
