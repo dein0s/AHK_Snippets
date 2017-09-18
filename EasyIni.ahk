@@ -235,7 +235,9 @@ class EasyIni
 		}
 
 		ValCopy := this[sec][OldKey]
-		this.DeleteKey(sec, OldKey)
+		; --- MODIFICATION START (dein0s) ---
+		this.RemoveKey(sec, OldKey)
+		; --- MODIFICATION END (dein0s) ---
 		this.AddKey(sec, NewKey)
 		this[sec][NewKey] := ValCopy
 		return true
@@ -957,6 +959,20 @@ IsStringEmpty(string)
 	return false
 }
 
+CalcStringMD5(string, case=true)
+{
+	static MD5_DIGEST_LENGTH := 16
+	hModule := DllCall("LoadLibrary", "Str", "advapi32.dll", "Ptr")
+	VarSetCapacity(MD5_CTX, 104, 0)
+	DllCall("advapi32\MD5Init", "Ptr", &MD5_CTX)
+	DllCall("advapi32\MD5Update", "Ptr", &MD5_CTX, "AStr", string, "UInt", StrLen(string))
+	DllCall("advapi32\MD5Final", "Ptr", &MD5_CTX)
+	Loop % MD5_DIGEST_LENGTH
+		outStr .= Format("{:02" (case ? "X" : "x") "}", NumGet(MD5_CTX, 87 + A_Index, "UChar"))
+	return outStr, DllCall("FreeLibrary", "Ptr", hModule)
+}
+
+
 /*
 	List of functions:
 		class_EasyIni(sFile="", sLoadFromStr="")
@@ -968,6 +984,7 @@ IsStringEmpty(string)
 		EasyIni_Insert(obj, parms*)
 		EasyIni_InsertBefore(obj, key, parms*)
 		IsStringEmpty(string)
+		CalcStringMD5(string, case=true)
 
 	List of EasyIni class methods:
 		__New(sFile="", sLoadFromStr="")
