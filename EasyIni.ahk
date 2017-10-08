@@ -842,7 +842,6 @@ class EasyIni
 					sLastAddedLine := "`n" (A_LoopField == Chr(14) ? "" : A_LoopField)
 					FileAppend, %sLastAddedLine%, %sFile%
 				}
-					; FileAppend, % "`n" (A_LoopField == Chr(14) ? "" : A_LoopField), %sFile%
 			}
 			if (bEmptySection)
 			{
@@ -853,7 +852,6 @@ class EasyIni
 					sLastAddedLine := "`n" (A_LoopField == Chr(14) ? "" : A_LoopField)
 					FileAppend, %sLastAddedLine%, %sFile%
 				}
-					; FileAppend, % "`n" (A_LoopField == Chr(14) ? "" : A_LoopField), %sFile%
 			}
 			if (!IsStringEmpty(sLastAddedLine)) {
 				FileAppend, % "`n", %sFile% ; NB: add new line at the end of the section
