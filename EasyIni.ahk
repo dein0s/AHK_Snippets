@@ -517,6 +517,9 @@ class EasyIni
 		if (!IsObject(SourceIni)) {
 			SourceIni := class_EasyIni(SourceIni)
 		}
+		if (SourceIni.IsEmpty()) {
+			return
+		}
 		; Add new items from SourceIni object
 		if (top_comments) {
 			for commentIndex, commentContent in StrSplit(SourceIni.GetTopComments(), "`n") {
