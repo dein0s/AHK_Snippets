@@ -15,20 +15,23 @@ Global FormatIntegerDefault := A_FormatInteger
 Global ScriptID := GetCurrentScriptID()
 Global ScriptThread := DllCall("GetWindowThreadProcessId", "UInt", ScriptID, "UInt", 0)
 
+Global ExcludeModifiersPattern := "[^\#\!\^\+\&\<\>\*\~\$\s]+"
+Global PrefixSC := "SC"
+Global PrefixVK := "VK"
+
 
 SetSettingsExecution() {
   DetectHiddenWindows, On
   SetTitleMatchMode, 2
-  SetFormat, integer, H
+  SetFormat, IntegerFast, H
   Return
 }
 
 
 SetSettingsDefault() {
-  Global
   DetectHiddenWindows, %DetectHiddenWindowsDefault%
   SetTitleMatchMode, %TitleMatchModeDefault%
-  SetFormat, integer, %FormatIntegerDefault%
+  SetFormat, IntegerFast, %FormatIntegerDefault%
   Return
 }
 
@@ -43,17 +46,15 @@ GetCurrentScriptID() {
 
 GetCurrentLayout() {
   ; Get current keyboard layout for the active script
-  Global
   SetSettingsExecution()
-  Layout := DllCall("GetKeyboardLayout", "UInt", ScriptThread)
+  _Layout := DllCall("GetKeyboardLayout", "UInt", ScriptThread)
   SetSettingsDefault()
-  Return Layout
+  Return _Layout
 }
 
 
 SwitchLayout(LayoutID) {
   ; Switch keyboard layout for the active script
-  Global
   SetSettingsExecution()
   ; Switch the script keyboard layout to the layout identical to the active window
   ; 0x50 - WM_INPUTLANGCHANGEREQUEST
@@ -67,40 +68,74 @@ SwitchLayout(LayoutID) {
 
 
 CustomGetKeyCode(Key, SC:=true) {
-  Global
-  Defaultlayout := GetCurrentLayout()
+  _Defaultlayout := GetCurrentLayout()
   _KeyCode := (SC=true) ? GetKeySC(Key) : GetKeyVK(Key)
-  If (_KeyCode = 0 and Defaultlayout != ENG_US) {
+  If (_KeyCode = 0 and _Defaultlayout != ENG_US) {
     ; Retrieving key code can fail (0 returned from GetKeySC()/GetKeyVK()) if the Key couldn't be found
     ; in a current keyboard layout (ie. "d" key in a russian layout)  or if it's MouseKey or some MediaKey
-    SwitchLayout(ENG_US)
+
+    ; NB: workaround for the issues caused by https://github.com/PoE-TradeMacro/POE-TradeMacro/pull/540
+    while (GetCurrentLayout() != ENG_US) {
+      SwitchLayout(ENG_US)
+      Sleep, 50
+    }
     _KeyCode := (SC=true) ? GetKeySC(Key) : GetKeyVK(Key)
-    SwitchLayout(Defaultlayout)
+    SwitchLayout(_Defaultlayout)
   }
   Return _KeyCode
 }
 
 
-ConvertKeyToCode(Key, SC:=true) {
-  NewKey := Key
-  KeyPos := 1
-  CodePrefix := (SC=true) ? "SC" : "VK"
-  ExcludeModifierSymbols := "[^\#\!\^\+\&\<\>\*\~\$\s]+"
-  While (KeyPos := RegExMatch(Key, ExcludeModifierSymbols, FoundKey, KeyPos + StrLen(FoundKey))) {
-    If !InStr(FoundKey, CodePrefix) {
-      KeyCode := CustomGetKeyCode(FoundKey, SC)
-      NewKey := (KeyCode = 0) ? NewKey : RegExReplace(NewKey, FoundKey, Format("{1:s}{2:X}", CodePrefix, KeyCode))
+CustomGetKeyName(KeyCode, ForceENG:=true) {
+  _Defaultlayout := GetCurrentLayout()
+  If (ForceENG and _Defaultlayout != ENG_US) {
+    SwitchLayout(ENG_US)
+  }
+  _KeyName := GetKeyName(KeyCode)
+  If (_Defaultlayout != GetCurrentLayout()) {
+    SwitchLayout(_Defaultlayout)
+  }
+  Return _KeyName
+}
+
+
+KeyCodeToKeyName(KeyCode, ForceENG:=true) {
+  _Result := KeyCode
+  _Pos := 1
+  While (_Pos := RegExMatch(KeyCode, ExcludeModifiersPattern, _Match, _Pos + StrLen(_Match))) {
+    If InStr(_Match, PrefixSC) or InStr(_Match, PrefixVK) {
+      _KeyName := CustomGetKeyName(_Match, ForceENG)
+      _Result := RegExReplace(_Result, _Match, _KeyName)
     }
   }
-  Return NewKey
+  Return _Result
+}
+
+
+KeyNameToKeyCode(Key, SC:=true) {
+  _Result := Key
+  _Pos := 1
+  _CodePrefix := (SC=true) ? PrefixSC : PrefixVK
+  _NotCodePrefix := (SC=true) ? PrefixVK : PrefixSC
+  While (_Pos := RegExMatch(Key, ExcludeModifiersPattern, _Match, _Pos + StrLen(_Match))) {
+    If !InStr(_Match, _CodePrefix) {
+      _NameToConvert := _Match
+      If InStr(_Match, _NotCodePrefix) {
+        _NameToConvert := KeyCodeToKeyName(_Match)
+      }
+      _KeyCode := CustomGetKeyCode(_NameToConvert, SC)
+      _Result := (_KeyCode=0) ? _Result : RegExReplace(_Result, _Match, Format("{1:s}{2:X}", _CodePrefix, _KeyCode))
+    }
+  }
+  Return _Result
 }
 
 
 KeyToSC(Key) {
-  Return ConvertKeyToCode(Key, true)
+  Return KeyNameToKeyCode(Key, true)
 }
 
 
 KeyToVK(Key) {
-  Return ConvertKeyToCode(Key, false)
+  Return KeyNameToKeyCode(Key, false)
 }
